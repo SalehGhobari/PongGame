@@ -10,12 +10,14 @@ int main()
     // constants
     const int screenWidth = 1920;
     const int screenHeight = 1080;
-    const float playerSpeed = 7.0f;
+    const float playerSpeed = 700.0f;
     const float ballRadius = 8.0f;
     bool resetBall = false;
-    float ballSpeedMultiplier = 5.0f;
-    float ballVx = 3.5f * (rand() % 2 == 0 ? -1 : 1);
-    float ballVy = 3.5f * (rand() % 2 == 0 ? -1 : 1);
+    bool exitRequest = false;
+    bool exit = false;
+    float ballSpeedMultiplier = 500.0f;
+    float ballVx = ballSpeedMultiplier * (rand() % 2 == 0 ? -1 : 1);
+    float ballVy = ballSpeedMultiplier * (rand() % 2 == 0 ? -1 : 1);
     int leftPlayerScore = 0;
     int rightPlayerScore = 0;
     // Player rectangles
@@ -29,41 +31,66 @@ int main()
     Rectangle leftBorder = { 0, 0 , 0, screenHeight };
 
     // Circle stuff
-    Vector2 ballCenter = {screenWidth / 2.0, screenHeight / 2.0};
+    Vector2 ballCenter = { screenWidth / 2.0, screenHeight / 2.0};
     Vector2 ballReset = { screenWidth / 2.0, screenHeight / 2.0 };
+    
+    
+    
 
     InitWindow(screenWidth, screenHeight, "PongGame");
+    // Measure text for exit confirmation
+    Vector2 textMeasurement = MeasureTextEx(GetFontDefault(), "Are you sure you want to exit ?", 30, 0);
     ToggleFullscreen();
-    SetTargetFPS(144);               // Set our game to run at 144 frames-per-second
     //--------------------------------------------------------------------------------------
-
+    InitAudioDevice();
+    Sound paddleHit = LoadSound("../Assets/paddleHit.mp3");
+    Sound pointWon = LoadSound("../Assets/Point.mp3");
     // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
+    while (!exit)    // Detect window close button or ESC key
     {
+        float deltaTime = GetFrameTime();
         // Update
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
+        if (WindowShouldClose() || IsKeyPressed(KEY_ESCAPE))
+        {
+            exitRequest = true;
+        }
+        if (exitRequest)
+        {
+            if (IsKeyPressed(KEY_Y))
+            {
+                exit = true;
+            }
+
+            else if (IsKeyPressed(KEY_N))
+            {
+                exitRequest = false;
+            }
+        }
         if (!resetBall)
         {
-            ballCenter.x += ballVx;
-            ballCenter.y += ballVy;
+            ballCenter.x += ballVx * deltaTime;
+            ballCenter.y += ballVy * deltaTime;
         }
 
         if (!resetBall && CheckCollisionCircleRec(ballCenter, ballRadius, rightBorder))
         {
             leftPlayerScore += 1;
+            PlaySound(pointWon);
             resetBall = true;
         }
         if (!resetBall && CheckCollisionCircleRec(ballCenter, ballRadius, leftBorder))
         {
             rightPlayerScore += 1;
+            PlaySound(pointWon);
             resetBall = true;
         }
         if (resetBall)
         {
             ballCenter = ballReset;
-            ballVx = 3.5f * (rand() % 2 == 0 ? -1 : 1);
-            ballVy = 3.5f * (rand() % 2 == 0 ? -1 : 1);
+            ballVx = ballSpeedMultiplier * (rand() % 2 == 0 ? -1 : 1);
+            ballVy = ballSpeedMultiplier * (rand() % 2 == 0 ? -1 : 1);
             resetBall = false;
         }
 
@@ -71,7 +98,7 @@ int main()
         if (CheckCollisionCircleRec(ballCenter, ballRadius, rightPlayer) || CheckCollisionCircleRec(ballCenter, ballRadius, leftPlayer))
         {
             ballVx *= -1;
-            ballVy *= -1;
+            PlaySound(paddleHit);
         }
         if (CheckCollisionCircleRec(ballCenter, ballRadius, topBorder) || CheckCollisionCircleRec(ballCenter, ballRadius, bottomBorder))
         {
@@ -80,19 +107,19 @@ int main()
 
         if (IsKeyDown(KEY_W) && !CheckCollisionRecs(leftPlayer, topBorder))
         {
-            leftPlayer.y -= playerSpeed;
+            leftPlayer.y -= playerSpeed * deltaTime;
         }
         if (IsKeyDown(KEY_S) && !CheckCollisionRecs(leftPlayer, bottomBorder))
         {
-            leftPlayer.y += playerSpeed;
+            leftPlayer.y += playerSpeed * deltaTime;
         }
         if (IsKeyDown(KEY_UP) && !CheckCollisionRecs(rightPlayer, topBorder))
         {
-            rightPlayer.y -= playerSpeed;
+            rightPlayer.y -= playerSpeed * deltaTime;
         }
         if (IsKeyDown(KEY_DOWN) && !CheckCollisionRecs(rightPlayer, bottomBorder))
         {
-            rightPlayer.y += playerSpeed;
+            rightPlayer.y += playerSpeed * deltaTime;
         }
         //----------------------------------------------------------------------------------
 
@@ -121,6 +148,14 @@ int main()
         // Draw Scores
         DrawText(TextFormat("%d", rightPlayerScore), 1440, 100, 50, PURPLE);
         DrawText(TextFormat("%d", leftPlayerScore), 480, 100, 50, PURPLE);
+
+        // Draw exit confirmation
+        if (exitRequest)
+        {
+            //DrawText(const char *text, int posX, int posY, int fontSize, Color color); 
+            DrawRectangle(screenWidth / 2 - textMeasurement.x / 2 , screenHeight / 2.0 - textMeasurement.y / 2, textMeasurement.x, textMeasurement.y, WHITE);
+            DrawText("Are you sure you want to exit ?", (screenWidth / 2 - textMeasurement.x / 2) + 10, (screenHeight / 2.0 - textMeasurement.y / 2) + 10, 30, PURPLE);
+        }
         
         EndDrawing();
         //----------------------------------------------------------------------------------
